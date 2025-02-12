@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watercolor Screen Saver</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: black;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="watercolorCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('watercolorCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let time = 0;
+
+        function drawWatercolor() {
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, `hsl(${(time * 10) % 360}, 100%, 50%)`);
+            gradient.addColorStop(1, `hsl(${(time * 10 + 180) % 360}, 100%, 50%)`);
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.globalAlpha = 0.05;
+            ctx.drawImage(canvas, Math.sin(time) * 5, Math.cos(time) * 5);
+            ctx.globalAlpha = 1.0;
+
+            time += 0.01;
+            requestAnimationFrame(drawWatercolor);
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        resizeCanvas();
+        drawWatercolor();
+    </script>
+</body>
+</html>
