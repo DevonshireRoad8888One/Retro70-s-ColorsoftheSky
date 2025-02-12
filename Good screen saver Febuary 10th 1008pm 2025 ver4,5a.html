@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watercolor Screen Saver with Sparkle and Fireworks Effects</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: black;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="watercolorCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('watercolorCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let time = 0;
+        const points = [];
+        const sparkles = [];
+        const fireworks = [];
+        let gradientColors = [];
+        let targetGradientColors = [];
+
+        function randomColor() {
+            const r = Math.floor(Math.random() * 256);
+            const g = Math.floor(Math.random() * 256);
+            const b = Math.floor(Math.random() * 256);
+            return `rgb(${r},${g},${b})`;
+        }
+
+        function createRandomPoints(numPoints) {
+            for (let i = 0; i < numPoints; i++) {
+                points.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2,
+                    color: randomColor(),
+                    targetColor: randomColor(),
+                    changeTime: Math.random() * 100,
+                    size: Math.random() * 20 + 5
+                });
+            }
+        }
+
+        function createSparkles(numSparkles) {
+            for (let i = 0; i < numSparkles; i++) {
+                sparkles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    color: randomColor(),
+                    size: Math.random() * 3 + 1,
+                    lifespan: Math.random() * 50 + 50
+                });
+            }
+        }
+
+        function createFireworks(numFireworks) {
+            for (let i = 0; i < numFireworks; i++) {
+                fireworks.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    color: randomColor(),
+                    size: Math.random() * 5 + 2,
+                    lifespan: Math.random() * 30 + 30
+                });
+            }
+        }
+
+        function lerpColor(a, b, amount) {
+            const [ar, ag, ab] = a.match(/\d+/g).map(Number);
+            const [br, bg, bb] = b.match(/\d+/g).map(Number);
+            const rr = ar + amount * (br - ar);
+            const rg = ag + amount * (bg - ag);
+            const rb = ab + amount * (bb - ab);
+            return `rgb(${Math.round(rr)},${Math.round(rg)},${Math.round(rb)})`;
+        }
+
+        function updateGradientColors() {
+            targetGradientColors = [];
+            for (let i = 0; i <= 1; i += 0.2) {
+                targetGradientColors.push(`hsl(${(Math.random() * 360)}, 100%, 50%)`);
+            }
+            setTimeout(updateGradientColors, Math.random() * 5000 + 5000); // Randomize every 5-10 seconds
+        }
+
+        function drawWatercolor() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const gradient = ctx.createRadialGradient(
+                canvas.width / 2, canvas.height / 2, 0,
+                canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height)
+            );
+
+            gradientColors = gradientColors.map((color, index) => {
+                return lerpColor(color, targetGradientColors[index], 0.01);
+            });
+
+            gradientColors.forEach((color, index) => {
+                gradient.addColorStop(index / (gradientColors.length - 1), color);
+            });
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            points.forEach(point => {
+                if (time > point.changeTime) {
+                    point.targetColor = randomColor();
+                    point.changeTime = time + Math.random() * 100;
+                }
+                point.color = lerpColor(point.color, point.targetColor, 0.01);
+
+                point.x += point.vx;
+                point.y += point.vy;
+
+                if (point.x < 0 || point.x > canvas.width) point.vx *= -1;
+                if (point.y < 0 || point.y > canvas.height) point.vy *= -1;
+
+                ctx.fillStyle = point.color;
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, point.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw sparkles
+            sparkles.forEach((sparkle, index) => {
+                sparkle.lifespan -= 1;
+                if (sparkle.lifespan <= 0) {
+                    sparkles.splice(index, 1);
+                    sparkles.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        color: randomColor(),
+                        size: Math.random() * 3 + 1,
+                        lifespan: Math.random() * 50 + 50
+                    });
+                }
+
+                ctx.fillStyle = sparkle.color;
+                ctx.beginPath();
+                ctx.arc(sparkle.x, sparkle.y, sparkle.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw fireworks
+            fireworks.forEach((firework, index) => {
+                firework.lifespan -= 1;
+                if (firework.lifespan <= 0) {
+                    fireworks.splice(index, 1);
+                    fireworks.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        color: randomColor(),
+                        size: Math.random() * 5 + 2,
+                        lifespan: Math.random() * 30 + 30
+                    });
+                } else {
+                    firework.color = randomColor();
+                }
+
+                ctx.fillStyle = firework.color;
+                ctx.beginPath();
+                ctx.arc(firework.x, firework.y, firework.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            ctx.globalAlpha = 0.05;
+            ctx.drawImage(canvas, Math.sin(time) * 5, Math.cos(time) * 5);
+            ctx.globalAlpha = 1.0;
+
+            time += 0.01;
+            requestAnimationFrame(drawWatercolor);
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            points.length = 0; // Clear existing points
+            sparkles.length = 0; // Clear existing sparkles
+            fireworks.length = 0; // Clear existing fireworks
+            createRandomPoints(300); // Create new random points
+            createSparkles(100); // Create new sparkles
+            createFireworks(50); // Create new fireworks
+            gradientColors = Array(6).fill().map(() => randomColor()); // Initialize gradient colors
+            targetGradientColors = Array(6).fill().map(() => randomColor()); // Initialize target gradient colors
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        resizeCanvas();
+        updateGradientColors();
+        drawWatercolor();
+    </script>
+</body>
+</html>
