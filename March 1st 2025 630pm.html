@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Watercolor Screen Saver with Adjustable Time Slider</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: black;
+    }
+    canvas {
+      display: block;
+    }
+    /* Slider styling: centered at bottom */
+    #timeSlider {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      opacity: 1; /* Start visible */
+      transition: opacity 0.5s ease;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="watercolorCanvas"></canvas>
+  <!-- Slider range set from 0.1 (slow) to 1.0 (fast) with default at 0.5 -->
+  <input type="range" id="timeSlider" min="0.1" max="1" step="0.1" value="0.5">
+  <script>
+    const canvas = document.getElementById('watercolorCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let points = [];
+    let time = 0;
+    // Use the slider value to control the time scale
+    let slowdownFactor = parseFloat(document.getElementById('timeSlider').value);
+
+    // Helper function to generate a random color
+    function randomColor() {
+      const r = Math.floor(Math.random() * 256);
+      const g = Math.floor(Math.random() * 256);
+      const b = Math.floor(Math.random() * 256);
+      return `rgb(${r},${g},${b})`;
+    }
+
+    // Linear interpolation between two colors
+    function lerpColor(a, b, amount) {
+      const [ar, ag, ab] = a.match(/\d+/g).map(Number);
+      const [br, bg, bb] = b.match(/\d+/g).map(Number);
+      const rr = ar + amount * (br - ar);
+      const rg = ag + amount * (bg - ag);
+      const rb = ab + amount * (bb - ab);
+      return `rgb(${Math.round(rr)},${Math.round(rg)},${Math.round(rb)})`;
+    }
+
+    // Create initial random points, now storing base velocities
+    function createRandomPoints(numPoints) {
+      points = [];
+      for (let i = 0; i < numPoints; i++) {
+        points.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          baseVx: (Math.random() - 0.5) * 2,
+          baseVy: (Math.random() - 0.5) * 2,
+          color: randomColor(),
+          targetColor: randomColor(),
+          changeTime: Math.random() * 100,
+          size: Math.random() * 10 + 5
+        });
+      }
+    }
+
+    // Create the background gradient
+    function createBackground() {
+      const gradient = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, 0,
+        canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height)
+      );
+      for (let i = 0; i <= 1; i += 0.2) {
+        gradient.addColorStop(i, `hsl(${(time * 10 + i * 360) % 360}, 100%, 50%)`);
+      }
+      return gradient;
+    }
+
+    // Draw the watercolor effect
+    function drawWatercolor() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Set gradient background
+      const gradient = createBackground();
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Process each point
+      points.forEach(point => {
+        if (time > point.changeTime) {
+          point.targetColor = randomColor();
+          point.changeTime = time + Math.random() * 100;
+        }
+        // Slowly transition to targetColor
+        point.color = lerpColor(point.color, point.targetColor, 0.01);
+        // Dynamic brush size variation
+        point.size = Math.random() * 10 + 5 + Math.sin(time) * 2;
+
+        // Update positions using the base velocity multiplied by slowdownFactor
+        point.x += point.baseVx * slowdownFactor;
+        point.y += point.baseVy * slowdownFactor;
+
+        // Bounce off the edges
+        if (point.x < 0 || point.x > canvas.width) point.baseVx *= -1;
+        if (point.y < 0 || point.y > canvas.height) point.baseVy *= -1;
+
+        ctx.fillStyle = point.color;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, point.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    // Animate the scene using requestAnimationFrame
+    function animate() {
+      // Update slowdownFactor from the slider value
+      slowdownFactor = parseFloat(document.getElementById('timeSlider').value);
+      // Increment time using slowdownFactor
+      time += 0.01 * slowdownFactor;
+      drawWatercolor();
+      requestAnimationFrame(animate);
+    }
+
+    // Resize canvas and reset points on window resize
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      createRandomPoints(100);
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // --- Slider Visibility Control ---
+    const slider = document.getElementById('timeSlider');
+    let sliderTimeout;
+    
+    function showSlider() {
+      slider.style.opacity = 1;
+      clearTimeout(sliderTimeout);
+      // Hide slider after 2 seconds of inactivity
+      sliderTimeout = setTimeout(() => {
+        slider.style.opacity = 0;
+      }, 2000);
+    }
+
+    // Show slider on mouse movement anywhere on the document
+    document.addEventListener('mousemove', showSlider);
+
+    // Prevent mouse events on slider from bubbling up
+    slider.addEventListener('mousemove', e => e.stopPropagation());
+
+    // Initialize
+    createRandomPoints(100);
+    animate();
+  </script>
+</body>
+</html>
