@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Watercolor Screen Saver (Slowed Down)</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: black;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="watercolorCanvas"></canvas>
+  <script>
+    const canvas = document.getElementById('watercolorCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let points = [];
+    let time = 0;
+    const slowdownFactor = 0.5; // Lower than 1 to slow down the animation
+
+    // Helper function to generate a random color
+    function randomColor() {
+      const r = Math.floor(Math.random() * 256);
+      const g = Math.floor(Math.random() * 256);
+      const b = Math.floor(Math.random() * 256);
+      return `rgb(${r},${g},${b})`;
+    }
+
+    // Linear interpolation between two colors
+    function lerpColor(a, b, amount) {
+      const [ar, ag, ab] = a.match(/\d+/g).map(Number);
+      const [br, bg, bb] = b.match(/\d+/g).map(Number);
+      const rr = ar + amount * (br - ar);
+      const rg = ag + amount * (bg - ag);
+      const rb = ab + amount * (bb - ab);
+      return `rgb(${Math.round(rr)},${Math.round(rg)},${Math.round(rb)})`;
+    }
+
+    // Create initial random points
+    function createRandomPoints(numPoints) {
+      points = [];
+      for (let i = 0; i < numPoints; i++) {
+        points.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          // Slowing down the movement by applying slowdownFactor to the velocities as well.
+          vx: ((Math.random() - 0.5) * 2) * slowdownFactor,
+          vy: ((Math.random() - 0.5) * 2) * slowdownFactor,
+          color: randomColor(),
+          targetColor: randomColor(),
+          changeTime: Math.random() * 100,
+          size: Math.random() * 10 + 5
+        });
+      }
+    }
+
+    // Create the background gradient
+    function createBackground() {
+      const gradient = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, 0,
+        canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height)
+      );
+      for (let i = 0; i <= 1; i += 0.2) {
+        gradient.addColorStop(i, `hsl(${(time * 10 + i * 360) % 360}, 100%, 50%)`);
+      }
+      return gradient;
+    }
+
+    // Draw the watercolor effect
+    function drawWatercolor() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Set gradient background
+      const gradient = createBackground();
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Process each point
+      points.forEach(point => {
+        if (time > point.changeTime) {
+          point.targetColor = randomColor();
+          point.changeTime = time + Math.random() * 100;
+        }
+        // Slowly transition to targetColor
+        point.color = lerpColor(point.color, point.targetColor, 0.01);
+
+        // Update positions using velocities
+        point.x += point.vx;
+        point.y += point.vy;
+
+        // Bounce off the edges
+        if (point.x < 0 || point.x > canvas.width) point.vx *= -1;
+        if (point.y < 0 || point.y > canvas.height) point.vy *= -1;
+
+        ctx.fillStyle = point.color;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, point.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    // Animate the scene with requestAnimationFrame
+    function animate() {
+      // Slow down time by multiplying the increment by the slowdownFactor
+      time += 0.01 * slowdownFactor;
+      drawWatercolor();
+      requestAnimationFrame(animate);
+    }
+
+    // Resize canvas and reset points on window resize
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      createRandomPoints(100);
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // Initialize
+    createRandomPoints(100);
+    animate();
+  </script>
+</body>
+</html>
